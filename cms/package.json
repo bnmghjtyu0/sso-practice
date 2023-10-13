@@ -1,0 +1,25 @@
+{
+  "name": "cms",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start1": "PORT=8686 nodemon ./bin/www",
+    "start2": "PORT=8787 nodemon ./bin/www"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "ejs": "~2.6.1",
+    "express": "~4.16.1",
+    "express-session": "^1.17.3",
+    "http-errors": "~1.6.3",
+    "morgan": "~1.9.1",
+    "node-fetch": "^2.7.0"
+  },
+  "main": "app.js",
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": ""
+}
