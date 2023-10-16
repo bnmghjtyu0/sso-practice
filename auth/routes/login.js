@@ -1,17 +1,22 @@
 var express = require("express");
-const { isTokenValid } = require("../utils");
+var bcrypt = require("bcrypt");
+const { isTokenValid, ticket } = require("../utils");
 var router = express.Router();
+const connection = require("../config/database");
 
+/**
+ * [GET] /sso/login
+ */
 router.get("/", function (req, res, next) {
-  const token = req.cookies["token"];
-  console.log("cookie 中是否有 token", token);
+  const ticket = req.cookies["ticket"];
+  console.log("cookie 中是否有 ticket", ticket);
 
-  if (token && isTokenValid(token)) {
+  if (ticket && isTokenValid(ticket)) {
     //有登入過
     const redirectUrl = req.query.redirectUrl;
     if (redirectUrl) {
-      //帶著令牌跳轉至應用B
-      res.redirect(`${req.protocol}://${redirectUrl}?token=${token}`);
+      //帶著票證跳轉至應用B
+      res.redirect(`${req.protocol}://${redirectUrl}?ticket=${ticket}`);
     } else {
       res.send(`<h1>登入成功</h1>`);
     }
@@ -21,31 +26,55 @@ router.get("/", function (req, res, next) {
   }
 });
 
-router.post("/", function (req, res, next) {
-  const name = req.body.name;
+/**
+ * [POST] /sso/login
+ */
+router.post("/", async function (req, res, next) {
+  const username = req.body.name;
   const password = req.body.password;
   const redirectUrl = req.query["redirectUrl"];
 
-  // 2. 用戶訊息
-  if (name === "admin" && password === "123456") {
-    //令牌
-    const token = "passport";
-    res.cookie("token", token, {
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      httpOnly: true,
-    });
+  connection.query(
+    `
+      SELECT *
+      FROM users
+      WHERE username = ?
+    `,
+    [username],
+    (error, results) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send("找不到使用者");
+        return;
+      }
+      bcrypt.compare(password, results[0]?.password, function (err, result) {
+        // 票證
+        const ticket = results[0].uuid;
+        if (result) {
 
-    if (redirectUrl) {
-      console.log(`跳轉至: ${req.protocol}://${redirectUrl}?token=${token}`);
-      //帶著令牌回到 A 網頁
-      res.redirect(`${req.protocol}://${redirectUrl}?token=${token}`);
-      //http://localhost:8686?token=passport
-    } else {
-      req.body = "<h1>登入成功</h1>";
+          // 將票證儲存在 cookie
+          res.cookie("ticket", ticket, {
+            maxAge: 1000 * 60 * 60 * 24 * 30,
+            httpOnly: true,
+          });
+
+          if (redirectUrl) {
+            console.log(
+              `跳轉至: ${req.protocol}://${redirectUrl}?ticket=${ticket}`
+            );
+
+            //帶著票證回到 A 網頁
+            res.redirect(`${req.protocol}://${redirectUrl}?ticket=${ticket}`);
+            //http://localhost:8686?token=passport
+          } else {
+            req.body = "<h1>登入成功</h1>";
+          }
+        } else {
+          res.send("帳密錯誤");
+        }
+      });
     }
-  } else {
-    res.send({ error: 1, msg: "帳密錯誤" });
-  }
+  );
 });
 
 module.exports = router;

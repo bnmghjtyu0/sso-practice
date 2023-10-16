@@ -1,21 +1,21 @@
 var express = require("express");
+var { isTokenValid } = require("../utils/index");
+
 var router = express.Router();
 
-/** check_token */
+/** 
+ * [GET] /sso/check_token
+ */
 router.get("/", function (req, res, next) {
-  const token = req.query.token;
-  console.log("check_token 取得令牌", token);
+  const ticket = req.query.ticket;
+
   const result = {
     error: 1,
   };
 
-  console.log(
-    "check_token 驗證令牌是否正常",
-    require("../utils/index").isTokenValid(token)
-  );
-  if (require("../utils/index").isTokenValid(token)) {
+  if (isTokenValid(ticket)) {
     result.error = 0;
-    result.userId = "admin";
+    result.userId = ticket;
   }
 
   res.status(200).json(result);
